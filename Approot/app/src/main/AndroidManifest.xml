@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://android.com"
+    xmlns:tools="http://android.com">
 
     <!-- Read real Lock Screen & Home Screen wallpapers from Samsung Settings -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -27,7 +27,7 @@
         android:theme="@style/Theme.Ios27Ui"
         tools:targetApi="34">
 
-        <!-- Setup / Control Hub Activity (we will keep adding toggles & modules here) -->
+        <!-- Setup / Control Hub Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -35,6 +35,21 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Default Home App Launcher Activity (shows up in Samsung Default Home App settings) -->
+        <activity
+            android:name=".launcher.HomeLauncherActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Ios27Ui.Wallpaper">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -70,6 +85,20 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+        </service>
+
+        <!-- Accessibility Service (keeps iOS UI alive on One UI & enables system gestures) -->
+        <service
+            android:name=".core.IosAccessibilityService"
+            android:label="iOS 27 System UI Engine"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
     </application>
