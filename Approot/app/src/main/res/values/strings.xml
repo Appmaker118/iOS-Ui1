@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">iOS 27 UI</string>
+    <string name="accessibility_service_desc">Enables iOS 27 Lock Screen wake detection, Control Center gestures, and global Status Bar overlays.</string>
+</resources>
