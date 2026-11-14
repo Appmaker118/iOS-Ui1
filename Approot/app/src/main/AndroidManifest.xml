@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://android.com"
+    xmlns:tools="http://android.com">
+
+    <!-- Read real Lock Screen & Home Screen wallpapers from Samsung Settings -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- Working Flashlight & Camera shortcut -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
+
+    <!-- Haptic feedback, Overlay & Lock Screen background service -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:allowBackup="true"
+        android:label="iOS 27 UI"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Ios27Ui"
+        tools:targetApi="34">
+
+        <!-- Setup / Control Hub Activity (we will keep adding toggles & modules here) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 1:1 iOS Lock Screen Activity -->
+        <activity
+            android:name=".lockscreen.LockScreenActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.Ios27Ui.LockScreen" />
+
+        <!-- Background Service that pops up Lock Screen when Power Button turns screen off/on -->
+        <service
+            android:name=".lockscreen.LockScreenService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Custom iOS Lock Screen display on screen wake" />
+        </service>
+
+        <!-- Real-Time Android Notification Catcher for the Bottom Lock Screen Stack -->
+        <service
+            android:name=".lockscreen.IosNotificationListenerService"
+            android:label="iOS 27 Notification Sync"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+    </application>
+
+</manifest>
