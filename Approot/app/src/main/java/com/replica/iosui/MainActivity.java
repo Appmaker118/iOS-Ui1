@@ -26,24 +26,38 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Button btnPermissions = findViewById(R.id.btn_grant_permissions);
+        Button btnAccessibility = findViewById(R.id.btn_accessibility_access);
         Button btnNotifAccess = findViewById(R.id.btn_notification_access);
+        Button btnDefaultHome = findViewById(R.id.btn_default_home);
         Button btnStartService = findViewById(R.id.btn_start_lock_service);
         Button btnPreviewLock = findViewById(R.id.btn_preview_lock_screen);
 
         btnPermissions.setOnClickListener(v -> requestCorePermissions());
 
+        btnAccessibility.setOnClickListener(v -> {
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        });
+
         btnNotifAccess.setOnClickListener(v -> {
             startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
         });
 
+        btnDefaultHome.setOnClickListener(v -> {
+            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
+        });
+
         btnStartService.setOnClickListener(v -> {
-            Intent serviceIntent = new Intent(this, LockScreenService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent);
-            } else {
-                startService(serviceIntent);
+            try {
+                Intent serviceIntent = new Intent(this, LockScreenService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent);
+                } else {
+                    startService(serviceIntent);
+                }
+                Toast.makeText(this, "iOS Lock Screen Service Started!", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
-            Toast.makeText(this, "iOS Lock Screen Service Started!", Toast.LENGTH_SHORT).show();
         });
 
         btnPreviewLock.setOnClickListener(v -> {
