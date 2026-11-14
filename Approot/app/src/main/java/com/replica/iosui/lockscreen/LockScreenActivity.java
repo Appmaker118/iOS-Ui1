@@ -323,7 +323,7 @@ triggerIosHaptic();
 float targetY = -getResources().getDisplayMetrics().heightPixels;
 SpringAnimation slideUp = new SpringAnimation(slidingContent, DynamicAnimation.TRANSLATION_Y, targetY);
 slideUp.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
-slideUp.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCE);
+slideUp.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY);
 slideUp.addEndListener((animation, canceled, value, velocity) -> handoffToSystemKeyguard(pendingIntent));
 slideUp.start();
 }
