@@ -26,7 +26,7 @@
             android:layout_marginTop="4dp"
             android:layout_marginBottom="24dp"
             android:fontFamily="@font/sf_pro_regular"
-            android:text="Part 1: Lock Screen Engine"
+            android:text="Enable these permissions once so the iOS UI runs seamlessly:"
             android:textColor="#99FFFFFF"
             android:textSize="15sp" />
 
@@ -35,8 +35,15 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginBottom="12dp"
-            android:fontFamily="@font/sf_pro_semibold"
-            android:text="1. Grant Wallpaper, Camera &amp; Overlay Access"
+            android:text="1. Grant Overlay, Camera &amp; Wallpaper Access"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_accessibility_access"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="12dp"
+            android:text="2. Enable Accessibility Service (iOS 27 Engine)"
             android:textAllCaps="false" />
 
         <Button
@@ -44,8 +51,15 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginBottom="12dp"
-            android:fontFamily="@font/sf_pro_semibold"
-            android:text="2. Enable Lock Screen Notifications Sync"
+            android:text="3. Enable Lock Screen Notifications Sync"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_default_home"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="12dp"
+            android:text="4. Set iOS 27 UI as Default Home App"
             android:textAllCaps="false" />
 
         <Button
@@ -53,15 +67,13 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginBottom="12dp"
-            android:fontFamily="@font/sf_pro_semibold"
-            android:text="3. Start Power-Button Lock Screen Service"
+            android:text="5. Start Lock Screen Background Service"
             android:textAllCaps="false" />
 
         <Button
             android:id="@+id/btn_preview_lock_screen"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:fontFamily="@font/sf_pro_semibold"
             android:text="Preview iOS Lock Screen Now"
             android:textAllCaps="false" />
 
