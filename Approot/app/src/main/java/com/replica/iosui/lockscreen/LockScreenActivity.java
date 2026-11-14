@@ -250,3 +250,194 @@ public class LockScreenActivity extends AppCompatActivity {
 
     private void openCameraFromLockScreen() {
         Intent camIntent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE);
+        camIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+try {
+startActivity(camIntent);
+finish();
+} catch (Exception e) {
+Intent fallback = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+try {
+startActivity(fallback);
+finish();
+} catch (Exception ignored) {
+}
+}
+}
+private void setupNotificationsRecycler() {
+LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+// Stacks notifications cleanly from the bottom up, just like iOS
+layoutManager.setStackFromEnd(true);
+rvNotifications.setLayoutManager(layoutManager);
+notificationAdapter = new LockNotificationAdapter(item -> {
+triggerIosHaptic();
+unlockAndOpenNotification(item);
+});
+rvNotifications.setAdapter(notificationAdapter);
+refreshNotifications();
+}
+private void refreshNotifications() {
+List current = IosNotificationListenerService.getCurrentNotifications(this);
+notificationAdapter.updateItems(current);
+if (!current.isEmpty()) {
+rvNotifications.scrollToPosition(current.size() - 1);
+}
+}
+/**
+* Handles interactive swipe-up on the bottom white Home Bar.
+* Smoothly transitions to Samsung's system PIN / Fingerprint screen without interfering with device security.
+*/
+@SuppressLint("ClickableViewAccessibility")
+private void setupSwipeUpToUnlock() {
+View.OnTouchListener swipeListener = (v, event) -> {
+if (isUnlocking) return true;
+switch (event.getActionMasked()) {
+case MotionEvent.ACTION_DOWN:
+touchStartY = event.getRawY();
+return true;
+case MotionEvent.ACTION_MOVE:
+float deltaY = event.getRawY() - touchStartY;
+if (deltaY < 0) {
+slidingContent.setTranslationY(deltaY);
+float progress = Math.min(1f, Math.abs(deltaY) / 500f);
+slidingContent.setAlpha(1f - (progress * 0.45f));
+}
+return true;
+case MotionEvent.ACTION_UP:
+case MotionEvent.ACTION_CANCEL:
+float totalUpwardSwipe = touchStartY - event.getRawY();
+if (totalUpwardSwipe > dpToPx(90)) {
+completeSwipeUnlock(null);
+} else {
+springBackLockScreen();
+}
+return true;
+}
+return false;
+};
+swipeUpTouchZone.setOnTouchListener(swipeListener);
+}
+private void completeSwipeUnlock(PendingIntent pendingIntent) {
+isUnlocking = true;
+triggerIosHaptic();
+float targetY = -getResources().getDisplayMetrics().heightPixels;
+SpringAnimation slideUp = new SpringAnimation(slidingContent, DynamicAnimation.TRANSLATION_Y, targetY);
+slideUp.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
+slideUp.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCE);
+slideUp.addEndListener((animation, canceled, value, velocity) -> handoffToSystemKeyguard(pendingIntent));
+slideUp.start();
+}
+private void springBackLockScreen() {
+SpringAnimation springY = new SpringAnimation(slidingContent, DynamicAnimation.TRANSLATION_Y, 0f);
+springY.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
+springY.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY);
+springY.start();
+slidingContent.animate().alpha(1f).setDuration(180).start();
+}
+private void unlockAndOpenNotification(LockNotificationItem item) {
+completeSwipeUnlock(item.contentIntent);
+}
+private void handoffToSystemKeyguard(PendingIntent pendingIntent) {
+KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && km != null && km.isKeyguardLocked()) {
+km.requestDismissKeyguard(this, new KeyguardManager.KeyguardDismissCallback() {
+@Override
+public void onDismissSucceeded() {
+firePendingIntentIfPresent(pendingIntent);
+finishAndRemoveTask();
+}
+@Override
+public void onDismissCancelled() {
+// User cancelled Samsung PIN entry -> reset iOS Lock Screen smoothly
+isUnlocking = false;
+slidingContent.setTranslationY(0f);
+slidingContent.setAlpha(1f);
+}
+@Override
+public void onDismissError() {
+finishAndRemoveTask();
+}
+});
+} else {
+firePendingIntentIfPresent(pendingIntent);
+finishAndRemoveTask();
+}
+}
+private void firePendingIntentIfPresent(PendingIntent pendingIntent) {
+if (pendingIntent != null) {
+try {
+pendingIntent.send();
+} catch (Exception ignored) {
+}
+}
+}
+private void animateButtonBounce(View view) {
+view.setScaleX(0.84f);
+view.setScaleY(0.84f);
+SpringAnimation scaleX = new SpringAnimation(view, DynamicAnimation.SCALE_X, 1f);
+scaleX.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
+scaleX.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY);
+SpringAnimation scaleY = new SpringAnimation(view, DynamicAnimation.SCALE_Y, 1f);
+scaleY.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
+scaleY.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY);
+scaleX.start();
+scaleY.start();
+}
+private void triggerIosHaptic() {
+Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+if (vibrator != null && vibrator.hasVibrator()) {
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
+} else {
+vibrator.vibrate(18);
+}
+}
+}
+private void updateClockAndDate() {
+tvDate.setText(dateFormat.format(new Date()));
+glassClockView.updateTime();
+}
+@Override
+protected void onResume() {
+super.onResume();
+hideSystemBars();
+loadSystemLockWallpaper();
+updateClockAndDate();
+refreshNotifications();
+IntentFilter filter = new IntentFilter();
+filter.addAction(Intent.ACTION_TIME_TICK);
+filter.addAction(Intent.ACTION_TIME_CHANGED);
+filter.addAction(Intent.ACTION_DATE_CHANGED);
+filter.addAction(IosNotificationListenerService.ACTION_NOTIFICATIONS_UPDATED);
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+registerReceiver(timeAndNotifReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+} else {
+registerReceiver(timeAndNotifReceiver, filter);
+}
+}
+@Override
+protected void onPause() {
+super.onPause();
+try {
+unregisterReceiver(timeAndNotifReceiver);
+} catch (Exception ignored) {
+}
+}
+@Override
+protected void onDestroy() {
+super.onDestroy();
+if (cameraManager != null) {
+try {
+cameraManager.unregisterTorchCallback(torchCallback);
+} catch (Exception ignored) {
+}
+}
+}
+@Override
+public void onBackPressed() {
+// Block back button on Lock Screen just like real iOS
+}
+private float dpToPx(float dp) {
+return dp * getResources().getDisplayMetrics().density;
+}
+}
