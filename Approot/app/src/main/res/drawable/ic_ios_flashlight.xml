@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://android.com"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Top lens flare rim -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,3.5 C8,2.95 8.45,2.5 9,2.5 L15,2.5 C15.55,2.5 16,2.95 16,3.5 L16,5.2 L8,5.2 Z" />
+    <!-- Tapered head and handle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,6.2 L16,6.2 L14.3,9.6 C14.1,10.0 14,10.45 14,10.9 L14,20.2 C14,21.0 13.35,21.6 12.55,21.6 L11.45,21.6 C10.65,21.6 10,21.0 10,20.2 L10,10.9 C10,10.45 9.9,10.0 9.7,9.6 Z" />
+    <!-- Switch dot cutout -->
+    <path
+        android:fillColor="#55000000"
+        android:pathData="M12,12.2 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0" />
+</vector>
