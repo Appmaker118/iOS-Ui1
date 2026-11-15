@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
@@ -14,7 +15,6 @@ import com.replica.iosui.lockscreen.LockScreenOverlayManager;
 public class IosAccessibilityService extends AccessibilityService {
 
     private static IosAccessibilityService instance;
-    private LockScreenOverlayManager lockScreenOverlayManager;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
@@ -23,11 +23,7 @@ public class IosAccessibilityService extends AccessibilityService {
             if (intent == null || intent.getAction() == null) return;
             String action = intent.getAction();
             if (Intent.ACTION_SCREEN_OFF.equals(action) || Intent.ACTION_SCREEN_ON.equals(action)) {
-                mainHandler.post(() -> {
-                    if (lockScreenOverlayManager != null) {
-                        lockScreenOverlayManager.show(true);
-                    }
-                });
+                mainHandler.post(() -> LockScreenOverlayManager.getInstance(context).show(true));
             }
         }
     };
@@ -36,12 +32,15 @@ public class IosAccessibilityService extends AccessibilityService {
     protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
-        lockScreenOverlayManager = new LockScreenOverlayManager(this);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(Intent.ACTION_SCREEN_ON);
-        registerReceiver(screenReceiver, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(screenReceiver, filter);
+        }
     }
 
     @Override
@@ -56,9 +55,7 @@ public class IosAccessibilityService extends AccessibilityService {
     public void onDestroy() {
         super.onDestroy();
         instance = null;
-        if (lockScreenOverlayManager != null) {
-            lockScreenOverlayManager.dismiss();
-        }
+        LockScreenOverlayManager.getInstance(this).dismiss();
         try {
             unregisterReceiver(screenReceiver);
         } catch (Exception ignored) {
