@@ -26,7 +26,6 @@
         android:layout_height="match_parent">
 
         <!-- Top Date + Tall Condensed Liquid Glass Clock -->
-        <!-- marginTop="64dp" leaves exact room at top for the global iOS Status Bar & Dynamic Island -->
         <LinearLayout
             android:id="@+id/clock_header_container"
             android:layout_width="match_parent"
@@ -40,7 +39,6 @@
                 android:id="@+id/tv_lock_date"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/sf_pro_semibold"
                 android:letterSpacing="0.01"
                 android:shadowColor="#40000000"
                 android:shadowDx="0"
@@ -48,7 +46,8 @@
                 android:shadowRadius="6"
                 android:text="Wed Apr 1"
                 android:textColor="#F2FFFFFF"
-                android:textSize="20sp" />
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
             <com.replica.iosui.lockscreen.GlassClockView
                 android:id="@+id/glass_clock_view"
@@ -106,7 +105,7 @@
             </FrameLayout>
         </FrameLayout>
 
-        <!-- Bottom-Up Stacked Notifications List (grows upward cleanly from bottom) -->
+        <!-- Bottom-Up Stacked Notifications List -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_lock_notifications"
             android:layout_width="match_parent"
