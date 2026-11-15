@@ -241,11 +241,10 @@ public class LockScreenOverlayManager {
                 } else {
                     views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle);
                     views.ivFlashlightIcon.setColorFilter(Color.WHITE);
-                }
-            } catch (Exception ignored) {
-            }
-        });
-
+}
+} catch (Exception ignored) {
+}
+});
 views.btnCamera.setOnClickListener(v -> {
 animateButtonBounce(views.btnCamera);
 triggerIosHaptic();
@@ -261,9 +260,10 @@ context.startActivity(camIntent);
 private void refreshNotifications() {
 if (views == null || views.notificationsContainer == null) return;
 views.notificationsContainer.removeAllViews();
-List current = IosNotificationListenerService.getCurrentNotifications(context);
+List<?> current = IosNotificationListenerService.getCurrentNotifications(context);
 float d = context.getResources().getDisplayMetrics().density;
-for (LockNotificationItem item : current) {
+for (Object obj : current) {
+LockNotificationItem item = (LockNotificationItem) obj;
 LinearLayout card = new LinearLayout(context);
 card.setOrientation(LinearLayout.HORIZONTAL);
 card.setGravity(Gravity.CENTER_VERTICAL);
