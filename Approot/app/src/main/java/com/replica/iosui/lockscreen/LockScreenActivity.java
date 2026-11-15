@@ -161,6 +161,7 @@ public class LockScreenActivity extends AppCompatActivity {
         btnCamera = findViewById(R.id.btn_camera);
         rvNotifications = findViewById(R.id.rv_lock_notifications);
         swipeUpTouchZone = findViewById(R.id.swipe_up_touch_zone);
+        com.replica.iosui.core.FontHelper.applySemibold(tvDate);
     }
 
     /**
