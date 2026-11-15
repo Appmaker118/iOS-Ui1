@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 
 import com.replica.iosui.lockscreen.LockScreenOverlayManager;
@@ -13,6 +15,7 @@ public class IosAccessibilityService extends AccessibilityService {
 
     private static IosAccessibilityService instance;
     private LockScreenOverlayManager lockScreenOverlayManager;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
@@ -20,9 +23,11 @@ public class IosAccessibilityService extends AccessibilityService {
             if (intent == null || intent.getAction() == null) return;
             String action = intent.getAction();
             if (Intent.ACTION_SCREEN_OFF.equals(action) || Intent.ACTION_SCREEN_ON.equals(action)) {
-                if (lockScreenOverlayManager != null) {
-                    lockScreenOverlayManager.show(true);
-                }
+                mainHandler.post(() -> {
+                    if (lockScreenOverlayManager != null) {
+                        lockScreenOverlayManager.show(true);
+                    }
+                });
             }
         }
     };
