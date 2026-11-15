@@ -68,7 +68,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(Settings.ACTION_HOME_SETTINGS)));
         addButton(container, "5. Start Lock Screen Background Service", v -> startLockService());
         addButton(container, "Preview iOS Lock Screen Now", v ->
-                startActivity(new Intent(this, LockScreenActivity.class)));
+                com.replica.iosui.lockscreen.LockScreenOverlayManager.getInstance(this)
+                        .show(IosAccessibilityService.isRunning()));
 
         scrollView.addView(container);
         setContentView(scrollView);
