@@ -7,11 +7,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.view.accessibility.AccessibilityEvent;
 
-import com.replica.iosui.lockscreen.LockScreenActivity;
+import com.replica.iosui.lockscreen.LockScreenOverlayManager;
 
 public class IosAccessibilityService extends AccessibilityService {
 
     private static IosAccessibilityService instance;
+    private LockScreenOverlayManager lockScreenOverlayManager;
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
@@ -19,14 +20,8 @@ public class IosAccessibilityService extends AccessibilityService {
             if (intent == null || intent.getAction() == null) return;
             String action = intent.getAction();
             if (Intent.ACTION_SCREEN_OFF.equals(action) || Intent.ACTION_SCREEN_ON.equals(action)) {
-                Intent lockIntent = new Intent(context, LockScreenActivity.class);
-                lockIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        | Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                try {
-                    context.startActivity(lockIntent);
-                } catch (Exception ignored) {
+                if (lockScreenOverlayManager != null) {
+                    lockScreenOverlayManager.show(true);
                 }
             }
         }
@@ -36,6 +31,7 @@ public class IosAccessibilityService extends AccessibilityService {
     protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        lockScreenOverlayManager = new LockScreenOverlayManager(this);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -45,7 +41,6 @@ public class IosAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // Used later for Dynamic Island & Status Bar app awareness
     }
 
     @Override
@@ -56,6 +51,9 @@ public class IosAccessibilityService extends AccessibilityService {
     public void onDestroy() {
         super.onDestroy();
         instance = null;
+        if (lockScreenOverlayManager != null) {
+            lockScreenOverlayManager.dismiss();
+        }
         try {
             unregisterReceiver(screenReceiver);
         } catch (Exception ignored) {
