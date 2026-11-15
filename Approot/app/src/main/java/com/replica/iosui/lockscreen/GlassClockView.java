@@ -12,9 +12,8 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import androidx.annotation.Nullable;
-import androidx.core.content.res.ResourcesCompat;
 
-import com.replica.iosui.R;
+import com.replica.iosui.core.FontHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -47,7 +46,7 @@ public class GlassClockView extends View {
     }
 
     private void init(Context context) {
-        Typeface sfBold = ResourcesCompat.getFont(context, R.font.sf_pro_bold);
+        Typeface sfBold = FontHelper.getBold(context);
 
         fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         fillPaint.setTypeface(sfBold);
@@ -73,7 +72,6 @@ public class GlassClockView extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
-        // Responsive text size based on screen width (matches iOS proportions on A21s & flagships)
         float baseTextSize = width * 0.255f;
         if (baseTextSize <= 0) {
             baseTextSize = 180f;
@@ -90,7 +88,6 @@ public class GlassClockView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (h > 0) {
-            // Translucent Liquid Glass vertical gradient so wallpaper bleeds through
             Shader glassShader = new LinearGradient(
                     0, 0,
                     0, h / VERTICAL_STRETCH,
@@ -119,7 +116,6 @@ public class GlassClockView extends View {
         float unscaledHeight = getHeight() / VERTICAL_STRETCH;
         float baselineY = (unscaledHeight / 2f) + (textBounds.height() / 2f) - dpToPx(2);
 
-        // Draw subtle liquid glass fill + specular edge rim
         canvas.drawText(timeText, centerX, baselineY, fillPaint);
         canvas.drawText(timeText, centerX, baselineY, strokePaint);
 
