@@ -45,6 +45,7 @@ import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
 
 import com.replica.iosui.R;
+import com.replica.iosui.core.IosAccessibilityService;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -56,7 +57,7 @@ public class LockScreenOverlayManager {
     private static LockScreenOverlayManager sharedInstance;
 
     private final Context context;
-    private final WindowManager windowManager;
+    private WindowManager activeWindowManager;
     private LockScreenViewBuilder.Views views;
     private boolean isShowing = false;
     private boolean isUnlocking = false;
@@ -92,7 +93,6 @@ public class LockScreenOverlayManager {
 
     public LockScreenOverlayManager(Context context) {
         this.context = context.getApplicationContext();
-        this.windowManager = (WindowManager) this.context.getSystemService(Context.WINDOW_SERVICE);
         initCamera();
     }
 
@@ -120,14 +120,23 @@ public class LockScreenOverlayManager {
             return;
         }
 
+        IosAccessibilityService accService = IosAccessibilityService.getInstance();
+        boolean canUseAccWindow = useAccessibilityOverlay
+                && accService != null
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1;
+
         boolean canDrawOverlay = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context);
-        if (!useAccessibilityOverlay && !canDrawOverlay) {
+
+        if (!canUseAccWindow && !canDrawOverlay) {
             Toast.makeText(context, "Please grant 'Appear on top' permission first!", Toast.LENGTH_LONG).show();
             return;
         }
 
         try {
-            views = LockScreenViewBuilder.build(context);
+            Context uiContext = canUseAccWindow ? accService : context;
+            activeWindowManager = (WindowManager) uiContext.getSystemService(Context.WINDOW_SERVICE);
+
+            views = LockScreenViewBuilder.build(uiContext);
             loadSystemLockWallpaper();
             setupFlashlightAndCamera();
             refreshNotifications();
@@ -135,7 +144,7 @@ public class LockScreenOverlayManager {
             updateClockAndDate();
 
             int windowType;
-            if (useAccessibilityOverlay && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            if (canUseAccWindow) {
                 windowType = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY;
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
@@ -162,7 +171,7 @@ public class LockScreenOverlayManager {
                 params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
             }
 
-            windowManager.addView(views.root, params);
+            activeWindowManager.addView(views.root, params);
             isShowing = true;
             isUnlocking = false;
 
@@ -189,10 +198,13 @@ public class LockScreenOverlayManager {
         } catch (Exception ignored) {
         }
         try {
-            windowManager.removeViewImmediate(views.root);
+            if (activeWindowManager != null) {
+                activeWindowManager.removeViewImmediate(views.root);
+            }
         } catch (Exception ignored) {
         }
         views = null;
+        activeWindowManager = null;
         isShowing = false;
         isUnlocking = false;
     }
@@ -236,11 +248,11 @@ public class LockScreenOverlayManager {
                 isFlashlightOn = !isFlashlightOn;
                 cameraManager.setTorchMode(torchCameraId, isFlashlightOn);
                 if (isFlashlightOn) {
-                    views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle_active);
-                    views.ivFlashlightIcon.setColorFilter(Color.parseColor("#1C1C1E"));
-                } else {
-                    views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle);
-                    views.ivFlashlightIcon.setColorFilter(Color.WHITE);
+              views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle_active);
+views.ivFlashlightIcon.setColorFilter(Color.parseColor("#1C1C1E"));
+} else {
+views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle);
+views.ivFlashlightIcon.setColorFilter(Color.WHITE);
 }
 } catch (Exception ignored) {
 }
