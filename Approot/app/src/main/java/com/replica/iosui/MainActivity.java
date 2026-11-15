@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             perms.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         }
-        ActivityCompat.requestPermissions(this, perms.toArray(new String), 101);
+        ActivityCompat.requestPermissions(this, perms.toArray(new String[0]), 101);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             Intent overlayIntent = new Intent(
