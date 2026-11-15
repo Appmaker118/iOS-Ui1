@@ -1,25 +1,28 @@
 package com.replica.iosui.lockscreen;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-
-import com.replica.iosui.R;
 
 public class LockScreenViewBuilder {
 
     public static class Views {
         public FrameLayout root;
         public ImageView ivWallpaper;
-        public RelativeLayout slidingContent;
+        public FrameLayout slidingContent;
         public TextView tvDate;
         public GlassClockView glassClockView;
         public FrameLayout btnFlashlight;
@@ -27,6 +30,28 @@ public class LockScreenViewBuilder {
         public FrameLayout btnCamera;
         public LinearLayout notificationsContainer;
         public FrameLayout swipeUpTouchZone;
+    }
+
+    public static GradientDrawable createGlassCircleDrawable(boolean active, float d) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.OVAL);
+        if (active) {
+            gd.setColor(Color.parseColor("#EBFFFFFF"));
+            gd.setStroke(Math.round(1.2f * d), Color.WHITE);
+        } else {
+            gd.setColor(Color.parseColor("#381C1C1E"));
+            gd.setStroke(Math.round(1.0f * d), Color.parseColor("#59FFFFFF"));
+        }
+        return gd;
+    }
+
+    public static GradientDrawable createNotificationCardDrawable(float d) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(22f * d);
+        gd.setColor(Color.parseColor("#521E1E22"));
+        gd.setStroke(Math.round(0.9f * d), Color.parseColor("#4DFFFFFF"));
+        return gd;
     }
 
     public static Views build(Context context) {
@@ -49,42 +74,56 @@ public class LockScreenViewBuilder {
         v.ivWallpaper.setScaleType(ImageView.ScaleType.CENTER_CROP);
         v.root.addView(v.ivWallpaper);
 
-        // 2. Subtle vignette
+        // 2. Subtle top/bottom vignette for contrast
         View vignette = new View(context);
         vignette.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
         ));
-        vignette.setBackgroundColor(Color.parseColor("#18000000"));
+        GradientDrawable vignetteGrad = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{
+                        Color.parseColor("#26000000"),
+                        Color.parseColor("#08000000"),
+                        Color.parseColor("#33000000")
+                }
+        );
+        vignette.setBackground(vignetteGrad);
         v.root.addView(vignette);
 
         // 3. Sliding Foreground Container
-        v.slidingContent = new RelativeLayout(context);
+        v.slidingContent = new FrameLayout(context);
         v.slidingContent.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
         ));
         v.root.addView(v.slidingContent);
 
-        // 4. Top Date + Tall Condensed Glass Clock
+        // 4. Centered Date + Tall Condensed Liquid Glass Clock at Top
         LinearLayout clockHeader = new LinearLayout(context);
-        clockHeader.setId(View.generateViewId());
-        RelativeLayout.LayoutParams headerLp = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
+        FrameLayout.LayoutParams headerLp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
         );
-        headerLp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-        headerLp.topMargin = Math.round(64 * d);
+        headerLp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        headerLp.topMargin = Math.round(62 * d);
         clockHeader.setLayoutParams(headerLp);
         clockHeader.setOrientation(LinearLayout.VERTICAL);
         clockHeader.setGravity(Gravity.CENTER_HORIZONTAL);
 
         v.tvDate = new TextView(context);
+        LinearLayout.LayoutParams dateLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        dateLp.gravity = Gravity.CENTER_HORIZONTAL;
+        v.tvDate.setLayoutParams(dateLp);
+        v.tvDate.setGravity(Gravity.CENTER);
         v.tvDate.setText("Wed Apr 1");
-        v.tvDate.setTextColor(Color.parseColor("#F2FFFFFF"));
+        v.tvDate.setTextColor(Color.parseColor("#F5FFFFFF"));
         v.tvDate.setTextSize(20f);
         v.tvDate.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        v.tvDate.setShadowLayer(6f, 0f, 2f, Color.parseColor("#40000000"));
+        v.tvDate.setShadowLayer(8f, 0f, 2f, Color.parseColor("#55000000"));
         clockHeader.addView(v.tvDate);
 
         v.glassClockView = new GlassClockView(context);
@@ -92,76 +131,23 @@ public class LockScreenViewBuilder {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        clockLp.topMargin = Math.round(-4 * d);
+        clockLp.topMargin = Math.round(-6 * d);
         v.glassClockView.setLayoutParams(clockLp);
         clockHeader.addView(v.glassClockView);
 
         v.slidingContent.addView(clockHeader);
 
-        // 5. Bottom Action Zone: Flashlight (Left) & Camera (Right)
-        FrameLayout bottomActions = new FrameLayout(context);
-        bottomActions.setId(View.generateViewId());
-        RelativeLayout.LayoutParams actionsLp = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
-        );
-        actionsLp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-        actionsLp.bottomMargin = Math.round(44 * d);
-        int sidePad = Math.round(34 * d);
-        bottomActions.setPadding(sidePad, 0, sidePad, 0);
-        bottomActions.setLayoutParams(actionsLp);
-
-        int btnSize = Math.round(50 * d);
-        int iconSize = Math.round(22 * d);
-
-        // Flashlight Button
-        v.btnFlashlight = new FrameLayout(context);
-        FrameLayout.LayoutParams flashLp = new FrameLayout.LayoutParams(btnSize, btnSize);
-        flashLp.gravity = Gravity.START | Gravity.CENTER_VERTICAL;
-        v.btnFlashlight.setLayoutParams(flashLp);
-        v.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle);
-        v.btnFlashlight.setClickable(true);
-        v.btnFlashlight.setFocusable(true);
-
-        v.ivFlashlightIcon = new ImageView(context);
-        FrameLayout.LayoutParams flashIconLp = new FrameLayout.LayoutParams(iconSize, iconSize);
-        flashIconLp.gravity = Gravity.CENTER;
-        v.ivFlashlightIcon.setLayoutParams(flashIconLp);
-        v.ivFlashlightIcon.setImageResource(R.drawable.ic_ios_flashlight);
-        v.btnFlashlight.addView(v.ivFlashlightIcon);
-        bottomActions.addView(v.btnFlashlight);
-
-        // Camera Button
-        v.btnCamera = new FrameLayout(context);
-        FrameLayout.LayoutParams camLp = new FrameLayout.LayoutParams(btnSize, btnSize);
-        camLp.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
-        v.btnCamera.setLayoutParams(camLp);
-        v.btnCamera.setBackgroundResource(R.drawable.bg_ios_glass_circle);
-        v.btnCamera.setClickable(true);
-        v.btnCamera.setFocusable(true);
-
-        ImageView ivCamIcon = new ImageView(context);
-        FrameLayout.LayoutParams camIconLp = new FrameLayout.LayoutParams(iconSize, iconSize);
-        camIconLp.gravity = Gravity.CENTER;
-        ivCamIcon.setLayoutParams(camIconLp);
-        ivCamIcon.setImageResource(R.drawable.ic_ios_camera);
-        v.btnCamera.addView(ivCamIcon);
-        bottomActions.addView(v.btnCamera);
-
-        v.slidingContent.addView(bottomActions);
-
-        // 6. Bottom-Up Stacked Notifications Zone
+        // 5. Bottom-Up Stacked Notifications Zone (anchored cleanly above the bottom buttons)
         ScrollView notifScroll = new ScrollView(context);
-        RelativeLayout.LayoutParams scrollLp = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
+        FrameLayout.LayoutParams scrollLp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Math.round(310 * d)
         );
-        scrollLp.addRule(RelativeLayout.ABOVE, bottomActions.getId());
-        scrollLp.addRule(RelativeLayout.BELOW, clockHeader.getId());
-        scrollLp.topMargin = Math.round(12 * d);
-        scrollLp.bottomMargin = Math.round(16 * d);
+        scrollLp.gravity = Gravity.BOTTOM;
+        scrollLp.bottomMargin = Math.round(108 * d);
         notifScroll.setLayoutParams(scrollLp);
         notifScroll.setVerticalScrollBarEnabled(false);
+        notifScroll.setFillViewport(true);
 
         v.notificationsContainer = new LinearLayout(context);
         v.notificationsContainer.setLayoutParams(new FrameLayout.LayoutParams(
@@ -176,13 +162,64 @@ public class LockScreenViewBuilder {
 
         v.slidingContent.addView(notifScroll);
 
-        // 7. Bottom Swipe-Up Touch Zone + White iOS Home Bar
-        v.swipeUpTouchZone = new FrameLayout(context);
-        RelativeLayout.LayoutParams swipeLp = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                Math.round(56 * d)
+        // 6. Bottom Action Buttons: Flashlight (Left) & Camera (Right)
+        FrameLayout bottomActions = new FrameLayout(context);
+        FrameLayout.LayoutParams actionsLp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Math.round(54 * d)
         );
-        swipeLp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        actionsLp.gravity = Gravity.BOTTOM;
+        actionsLp.bottomMargin = Math.round(42 * d);
+        int sidePad = Math.round(34 * d);
+        bottomActions.setPadding(sidePad, 0, sidePad, 0);
+        bottomActions.setLayoutParams(actionsLp);
+
+        int btnSize = Math.round(50 * d);
+        int iconSize = Math.round(24 * d);
+
+        // Flashlight Button
+        v.btnFlashlight = new FrameLayout(context);
+        FrameLayout.LayoutParams flashLp = new FrameLayout.LayoutParams(btnSize, btnSize);
+        flashLp.gravity = Gravity.START | Gravity.CENTER_VERTICAL;
+        v.btnFlashlight.setLayoutParams(flashLp);
+        v.btnFlashlight.setBackground(createGlassCircleDrawable(false, d));
+        v.btnFlashlight.setClickable(true);
+        v.btnFlashlight.setFocusable(true);
+
+        v.ivFlashlightIcon = new ImageView(context);
+        FrameLayout.LayoutParams flashIconLp = new FrameLayout.LayoutParams(iconSize, iconSize);
+        flashIconLp.gravity = Gravity.CENTER;
+        v.ivFlashlightIcon.setLayoutParams(flashIconLp);
+        v.ivFlashlightIcon.setImageBitmap(createFlashlightBitmap(Math.round(48 * d), Color.WHITE));
+        v.btnFlashlight.addView(v.ivFlashlightIcon);
+        bottomActions.addView(v.btnFlashlight);
+
+        // Camera Button
+        v.btnCamera = new FrameLayout(context);
+        FrameLayout.LayoutParams camLp = new FrameLayout.LayoutParams(btnSize, btnSize);
+        camLp.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
+        v.btnCamera.setLayoutParams(camLp);
+        v.btnCamera.setBackground(createGlassCircleDrawable(false, d));
+        v.btnCamera.setClickable(true);
+        v.btnCamera.setFocusable(true);
+
+        ImageView ivCamIcon = new ImageView(context);
+        FrameLayout.LayoutParams camIconLp = new FrameLayout.LayoutParams(iconSize, iconSize);
+        camIconLp.gravity = Gravity.CENTER;
+        ivCamIcon.setLayoutParams(camIconLp);
+        ivCamIcon.setImageBitmap(createCameraBitmap(Math.round(48 * d), Color.WHITE));
+        v.btnCamera.addView(ivCamIcon);
+        bottomActions.addView(v.btnCamera);
+
+        v.slidingContent.addView(bottomActions);
+
+        // 7. Bottom Swipe-Up Touch Zone + Crisp White iOS Home Bar
+        v.swipeUpTouchZone = new FrameLayout(context);
+        FrameLayout.LayoutParams swipeLp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Math.round(46 * d)
+        );
+        swipeLp.gravity = Gravity.BOTTOM;
         v.swipeUpTouchZone.setLayoutParams(swipeLp);
 
         View homeBar = new View(context);
@@ -191,13 +228,68 @@ public class LockScreenViewBuilder {
                 Math.round(5 * d)
         );
         barLp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-        barLp.bottomMargin = Math.round(10 * d);
+        barLp.bottomMargin = Math.round(9 * d);
         homeBar.setLayoutParams(barLp);
-        homeBar.setBackgroundResource(R.drawable.bg_ios_home_bar);
-        v.swipeUpTouchZone.addView(homeBar);
 
-        v.slidingContent.addView(v.swipeUpTouchZone);
-
-        return v;
-    }
+        GradientDrawable homeBarBg = new GradientDrawable();
+homeBarBg.setShape(GradientDrawable.RECTANGLE);
+homeBarBg.setCornerRadius(100f * d);
+homeBarBg.setColor(Color.parseColor("#EBFFFFFF"));
+homeBar.setBackground(homeBarBg);
+v.swipeUpTouchZone.addView(homeBar);
+v.slidingContent.addView(v.swipeUpTouchZone);
+return v;
+}
+public static Bitmap createFlashlightBitmap(int size, int color) {
+Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+Canvas c = new Canvas(bmp);
+Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+p.setColor(color);
+p.setStyle(Paint.Style.FILL);
+float s = size / 24f;
+// Top rim
+c.drawRoundRect(new RectF(8f * s, 2.5f * s, 16f * s, 5.2f * s), 1.2f * s, 1.2f * s, p);
+// Tapered head + handle
+Path body = new Path();
+body.moveTo(8f * s, 6.3f * s);
+body.lineTo(16f * s, 6.3f * s);
+body.lineTo(14.1f * s, 10.1f * s);
+body.lineTo(14.1f * s, 20.3f * s);
+body.quadTo(14.1f * s, 21.6f * s, 12.7f * s, 21.6f * s);
+body.lineTo(11.3f * s, 21.6f * s);
+body.quadTo(9.9f * s, 21.6f * s, 9.9f * s, 20.3f * s);
+body.lineTo(9.9f * s, 10.1f * s);
+body.close();
+c.drawPath(body, p);
+// Power dot cutout
+Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+dotPaint.setColor(color == Color.WHITE ? Color.parseColor("#66000000") : Color.WHITE);
+c.drawCircle(12f * s, 12.5f * s, 1.15f * s, dotPaint);
+return bmp;
+}
+public static Bitmap createCameraBitmap(int size, int color) {
+Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+Canvas c = new Canvas(bmp);
+Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+p.setColor(color);
+p.setStyle(Paint.Style.FILL);
+float s = size / 24f;
+// Top shutter bump
+Path bump = new Path();
+bump.moveTo(7.8f * s, 6.6f * s);
+bump.lineTo(9.2f * s, 4.4f * s);
+bump.lineTo(14.8f * s, 4.4f * s);
+bump.lineTo(16.2f * s, 6.6f * s);
+bump.close();
+c.drawPath(bump, p);
+// Main rounded camera body
+c.drawRoundRect(new RectF(2f * s, 6.5f * s, 22f * s, 19.8f * s), 3.2f * s, 3.2f * s, p);
+// Lens ring cutout
+Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+ring.setColor(Color.parseColor("#66000000"));
+c.drawCircle(12f * s, 13.2f * s, 4.1f * s, ring);
+// Inner lens
+c.drawCircle(12f * s, 13.2f * s, 2.6f * s, p);
+return bmp;
+}
 }
