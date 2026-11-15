@@ -2,7 +2,6 @@ package com.replica.iosui.lockscreen;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.KeyguardManager;
 import android.app.PendingIntent;
 import android.app.WallpaperManager;
 import android.content.BroadcastReceiver;
@@ -12,8 +11,15 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
@@ -22,26 +28,23 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.MediaStore;
 import android.provider.Settings;
-import android.view.ContextThemeWrapper;
+import android.text.TextUtils;
+import android.text.format.DateUtils;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.replica.iosui.R;
-import com.replica.iosui.core.FontHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -50,23 +53,14 @@ import java.util.Locale;
 
 public class LockScreenOverlayManager {
 
+    private static LockScreenOverlayManager sharedInstance;
+
     private final Context context;
     private final WindowManager windowManager;
-    private View rootView;
+    private LockScreenViewBuilder.Views views;
     private boolean isShowing = false;
     private boolean isUnlocking = false;
 
-    private ImageView ivWallpaper;
-    private RelativeLayout slidingContent;
-    private TextView tvDate;
-    private GlassClockView glassClockView;
-    private FrameLayout btnFlashlight;
-    private ImageView ivFlashlightIcon;
-    private FrameLayout btnCamera;
-    private RecyclerView rvNotifications;
-    private View swipeUpTouchZone;
-
-    private LockNotificationAdapter notificationAdapter;
     private boolean isFlashlightOn = false;
     private String torchCameraId = null;
     private CameraManager cameraManager;
@@ -89,9 +83,16 @@ public class LockScreenOverlayManager {
         }
     };
 
+    public static LockScreenOverlayManager getInstance(Context context) {
+        if (sharedInstance == null) {
+            sharedInstance = new LockScreenOverlayManager(context.getApplicationContext());
+        }
+        return sharedInstance;
+    }
+
     public LockScreenOverlayManager(Context context) {
-        this.context = new ContextThemeWrapper(context, R.style.Theme_Ios27Ui_LockScreen);
-        this.windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        this.context = context.getApplicationContext();
+        this.windowManager = (WindowManager) this.context.getSystemService(Context.WINDOW_SERVICE);
         initCamera();
     }
 
@@ -119,16 +120,17 @@ public class LockScreenOverlayManager {
             return;
         }
 
-        if (!useAccessibilityOverlay && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+        boolean canDrawOverlay = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context);
+        if (!useAccessibilityOverlay && !canDrawOverlay) {
+            Toast.makeText(context, "Please grant 'Appear on top' permission first!", Toast.LENGTH_LONG).show();
             return;
         }
 
         try {
-            rootView = LayoutInflater.from(context).inflate(R.layout.activity_lock_screen, null);
-            bindViews();
+            views = LockScreenViewBuilder.build(context);
             loadSystemLockWallpaper();
             setupFlashlightAndCamera();
-            setupNotificationsRecycler();
+            refreshNotifications();
             setupSwipeUpToUnlock();
             updateClockAndDate();
 
@@ -160,7 +162,7 @@ public class LockScreenOverlayManager {
                 params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
             }
 
-            windowManager.addView(rootView, params);
+            windowManager.addView(views.root, params);
             isShowing = true;
             isUnlocking = false;
 
@@ -170,42 +172,29 @@ public class LockScreenOverlayManager {
             filter.addAction(Intent.ACTION_DATE_CHANGED);
             filter.addAction(IosNotificationListenerService.ACTION_NOTIFICATIONS_UPDATED);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(updateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+                context.registerReceiver(updateReceiver, filter, Context.RECEIVER_EXPORTED);
             } else {
                 context.registerReceiver(updateReceiver, filter);
             }
-        } catch (Exception e) {
+        } catch (Throwable t) {
             isShowing = false;
+            Toast.makeText(context, "LockScreen Error: " + t.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
     public void dismiss() {
-        if (!isShowing || rootView == null) return;
+        if (!isShowing || views == null || views.root == null) return;
         try {
             context.unregisterReceiver(updateReceiver);
         } catch (Exception ignored) {
         }
         try {
-            windowManager.removeViewImmediate(rootView);
+            windowManager.removeViewImmediate(views.root);
         } catch (Exception ignored) {
         }
-        rootView = null;
+        views = null;
         isShowing = false;
         isUnlocking = false;
-    }
-
-    private void bindViews() {
-        ivWallpaper = rootView.findViewById(R.id.iv_lock_wallpaper);
-        slidingContent = rootView.findViewById(R.id.lock_sliding_content);
-        tvDate = rootView.findViewById(R.id.tv_lock_date);
-        glassClockView = rootView.findViewById(R.id.glass_clock_view);
-        btnFlashlight = rootView.findViewById(R.id.btn_flashlight);
-        ivFlashlightIcon = rootView.findViewById(R.id.iv_flashlight_icon);
-        btnCamera = rootView.findViewById(R.id.btn_camera);
-        rvNotifications = rootView.findViewById(R.id.rv_lock_notifications);
-        swipeUpTouchZone = rootView.findViewById(R.id.swipe_up_touch_zone);
-
-        FontHelper.applySemibold(tvDate);
     }
 
     private void loadSystemLockWallpaper() {
@@ -224,40 +213,41 @@ public class LockScreenOverlayManager {
                     Bitmap bitmap = BitmapFactory.decodeFileDescriptor(pfd.getFileDescriptor());
                     pfd.close();
                     if (bitmap != null) {
-                        ivWallpaper.setImageBitmap(bitmap);
+                        views.ivWallpaper.setImageBitmap(bitmap);
                         return;
                     }
                 }
             }
             Drawable drawable = wallpaperManager.getDrawable();
             if (drawable != null) {
-                ivWallpaper.setImageDrawable(drawable);
+                views.ivWallpaper.setImageDrawable(drawable);
             }
         } catch (Exception e) {
-            ivWallpaper.setBackgroundColor(Color.parseColor("#1C1C1E"));
+            views.ivWallpaper.setBackgroundColor(Color.parseColor("#1C1C1E"));
         }
     }
 
     private void setupFlashlightAndCamera() {
-        btnFlashlight.setOnClickListener(v -> {
-            animateButtonBounce(btnFlashlight);
+        views.btnFlashlight.setOnClickListener(v -> {
+            animateButtonBounce(views.btnFlashlight);
             triggerIosHaptic();
             if (cameraManager == null || torchCameraId == null) return;
             try {
-isFlashlightOn = !isFlashlightOn;
-cameraManager.setTorchMode(torchCameraId, isFlashlightOn);
-if (isFlashlightOn) {
-btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle_active);
-ivFlashlightIcon.setColorFilter(Color.parseColor("#1C1C1E"));
-} else {
-btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle);
-ivFlashlightIcon.setColorFilter(Color.WHITE);
-}
-} catch (Exception ignored) {
-}
-});
-btnCamera.setOnClickListener(v -> {
-animateButtonBounce(btnCamera);
+                isFlashlightOn = !isFlashlightOn;
+                cameraManager.setTorchMode(torchCameraId, isFlashlightOn);
+                if (isFlashlightOn) {
+                    views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle_active);
+                    views.ivFlashlightIcon.setColorFilter(Color.parseColor("#1C1C1E"));
+                } else {
+                    views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle);
+                    views.ivFlashlightIcon.setColorFilter(Color.WHITE);
+                }
+            } catch (Exception ignored) {
+            }
+        });
+
+views.btnCamera.setOnClickListener(v -> {
+animateButtonBounce(views.btnCamera);
 triggerIosHaptic();
 dismiss();
 Intent camIntent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE);
@@ -268,28 +258,102 @@ context.startActivity(camIntent);
 }
 });
 }
-private void setupNotificationsRecycler() {
-LinearLayoutManager layoutManager = new LinearLayoutManager(context);
-layoutManager.setStackFromEnd(true);
-rvNotifications.setLayoutManager(layoutManager);
-notificationAdapter = new LockNotificationAdapter(item -> {
+private void refreshNotifications() {
+if (views == null || views.notificationsContainer == null) return;
+views.notificationsContainer.removeAllViews();
+List current = IosNotificationListenerService.getCurrentNotifications(context);
+float d = context.getResources().getDisplayMetrics().density;
+for (LockNotificationItem item : current) {
+LinearLayout card = new LinearLayout(context);
+card.setOrientation(LinearLayout.HORIZONTAL);
+card.setGravity(Gravity.CENTER_VERTICAL);
+card.setBackgroundResource(R.drawable.bg_ios_notification_card);
+int padH = Math.round(14 * d);
+int padV = Math.round(12 * d);
+card.setPadding(padH, padV, padH, padV);
+LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+);
+cardLp.topMargin = Math.round(8 * d);
+card.setLayoutParams(cardLp);
+ImageView ivIcon = new ImageView(context);
+int iconSize = Math.round(38 * d);
+ivIcon.setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
+if (item.appIcon != null) {
+ivIcon.setImageBitmap(getRoundedIcon(item.appIcon));
+}
+card.addView(ivIcon);
+LinearLayout textCol = new LinearLayout(context);
+textCol.setOrientation(LinearLayout.VERTICAL);
+LinearLayout.LayoutParams colLp = new LinearLayout.LayoutParams(
+0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+);
+colLp.leftMargin = Math.round(12 * d);
+textCol.setLayoutParams(colLp);
+LinearLayout topRow = new LinearLayout(context);
+topRow.setOrientation(LinearLayout.HORIZONTAL);
+topRow.setGravity(Gravity.CENTER_VERTICAL);
+TextView tvTitle = new TextView(context);
+tvTitle.setText(item.title);
+tvTitle.setTextColor(Color.WHITE);
+tvTitle.setTextSize(14f);
+tvTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+tvTitle.setMaxLines(1);
+tvTitle.setEllipsize(TextUtils.TruncateAt.END);
+tvTitle.setLayoutParams(new LinearLayout.LayoutParams(
+0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+));
+topRow.addView(tvTitle);
+TextView tvTime = new TextView(context);
+tvTime.setText(formatIosTime(item.postTime));
+tvTime.setTextColor(Color.parseColor("#B3FFFFFF"));
+tvTime.setTextSize(12f);
+topRow.addView(tvTime);
+textCol.addView(topRow);
+TextView tvBody = new TextView(context);
+tvBody.setText(item.text);
+tvBody.setTextColor(Color.parseColor("#E6FFFFFF"));
+tvBody.setTextSize(13f);
+tvBody.setMaxLines(2);
+tvBody.setEllipsize(TextUtils.TruncateAt.END);
+textCol.addView(tvBody);
+card.addView(textCol);
+card.setOnClickListener(v -> {
 triggerIosHaptic();
 completeSwipeUnlock(item.contentIntent);
 });
-rvNotifications.setAdapter(notificationAdapter);
-refreshNotifications();
+views.notificationsContainer.addView(card);
 }
-private void refreshNotifications() {
-if (notificationAdapter == null) return;
-List current = IosNotificationListenerService.getCurrentNotifications(context);
-notificationAdapter.updateItems(current);
-if (!current.isEmpty()) {
-rvNotifications.scrollToPosition(current.size() - 1);
 }
+private String formatIosTime(long postTime) {
+long diff = System.currentTimeMillis() - postTime;
+if (diff < DateUtils.MINUTE_IN_MILLIS) return "now";
+return DateUtils.getRelativeTimeSpanString(
+postTime, System.currentTimeMillis(),
+DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE
+).toString();
+}
+private Bitmap getRoundedIcon(Drawable drawable) {
+int size = 96;
+Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+Canvas canvas = new Canvas(output);
+final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+final Rect rect = new Rect(0, 0, size, size);
+final RectF rectF = new RectF(rect);
+float radius = size * 0.225f;
+canvas.drawRoundRect(rectF, radius, radius, paint);
+paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+Bitmap src = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+Canvas srcCanvas = new Canvas(src);
+drawable.setBounds(0, 0, size, size);
+drawable.draw(srcCanvas);
+canvas.drawBitmap(src, rect, rect, paint);
+return output;
 }
 @SuppressLint("ClickableViewAccessibility")
 private void setupSwipeUpToUnlock() {
-swipeUpTouchZone.setOnTouchListener((v, event) -> {
+views.swipeUpTouchZone.setOnTouchListener((v, event) -> {
 if (isUnlocking) return true;
 switch (event.getActionMasked()) {
 case MotionEvent.ACTION_DOWN:
@@ -298,9 +362,9 @@ return true;
 case MotionEvent.ACTION_MOVE:
 float deltaY = event.getRawY() - touchStartY;
 if (deltaY < 0) {
-slidingContent.setTranslationY(deltaY);
+views.slidingContent.setTranslationY(deltaY);
 float progress = Math.min(1f, Math.abs(deltaY) / 500f);
-slidingContent.setAlpha(1f - (progress * 0.45f));
+views.slidingContent.setAlpha(1f - (progress * 0.45f));
 }
 return true;
 case MotionEvent.ACTION_UP:
@@ -309,11 +373,11 @@ float totalUpwardSwipe = touchStartY - event.getRawY();
 if (totalUpwardSwipe > dpToPx(85)) {
 completeSwipeUnlock(null);
 } else {
-SpringAnimation springY = new SpringAnimation(slidingContent, DynamicAnimation.TRANSLATION_Y, 0f);
+SpringAnimation springY = new SpringAnimation(views.slidingContent, DynamicAnimation.TRANSLATION_Y, 0f);
 springY.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
 springY.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY);
 springY.start();
-slidingContent.animate().alpha(1f).setDuration(180).start();
+views.slidingContent.animate().alpha(1f).setDuration(180).start();
 }
 return true;
 }
@@ -324,7 +388,7 @@ private void completeSwipeUnlock(PendingIntent pendingIntent) {
 isUnlocking = true;
 triggerIosHaptic();
 float targetY = -context.getResources().getDisplayMetrics().heightPixels;
-SpringAnimation slideUp = new SpringAnimation(slidingContent, DynamicAnimation.TRANSLATION_Y, targetY);
+SpringAnimation slideUp = new SpringAnimation(views.slidingContent, DynamicAnimation.TRANSLATION_Y, targetY);
 slideUp.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
 slideUp.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY);
 slideUp.addEndListener((animation, canceled, value, velocity) -> {
@@ -361,8 +425,9 @@ vibrator.vibrate(18);
 }
 }
 private void updateClockAndDate() {
-if (tvDate != null) tvDate.setText(dateFormat.format(new Date()));
-if (glassClockView != null) glassClockView.updateTime();
+if (views == null) return;
+if (views.tvDate != null) views.tvDate.setText(dateFormat.format(new Date()));
+if (views.glassClockView != null) views.glassClockView.updateTime();
 }
 private float dpToPx(float dp) {
 return dp * context.getResources().getDisplayMetrics().density;
