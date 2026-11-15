@@ -65,4 +65,12 @@ public class IosAccessibilityService extends AccessibilityService {
     public static boolean isRunning() {
         return instance != null;
     }
+
+     public static IosAccessibilityService getInstance() {
+        return instance;
+    }
+
+    public static boolean isRunning() {
+        return instance != null;
+    }
 }
