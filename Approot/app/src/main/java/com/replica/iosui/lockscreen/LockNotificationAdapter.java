@@ -57,6 +57,10 @@ public class LockNotificationAdapter extends RecyclerView.Adapter<LockNotificati
         holder.tvTitle.setText(item.title);
         holder.tvBody.setText(item.text);
         holder.tvTime.setText(formatIosTime(item.postTime));
+        com.replica.iosui.core.FontHelper.applySemibold(holder.tvTitle);
+        com.replica.iosui.core.FontHelper.applyRegular(holder.tvBody);
+        com.replica.iosui.core.FontHelper.applyRegular(holder.tvTime);
+
 
         if (item.appIcon != null) {
             holder.ivIcon.setImageBitmap(getRoundedIcon(item.appIcon));
