@@ -13,8 +13,6 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 
-import com.replica.iosui.core.FontHelper;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -27,34 +25,33 @@ public class GlassClockView extends View {
     private final Rect textBounds = new Rect();
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm", Locale.getDefault());
 
-    // Vertical stretch factor to turn SF Pro Bold into the tall condensed iOS Lock Screen clock
-    private static final float VERTICAL_STRETCH = 1.38f;
+    private static final float VERTICAL_STRETCH = 1.32f;
 
     public GlassClockView(Context context) {
         super(context);
-        init(context);
+        init();
     }
 
     public GlassClockView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
-        init(context);
+        init();
     }
 
     public GlassClockView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
+        init();
     }
 
-    private void init(Context context) {
-        Typeface sfBold = FontHelper.getBold(context);
+    private void init() {
+        Typeface clockTypeface = Typeface.create("sans-serif-medium", Typeface.BOLD);
 
         fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fillPaint.setTypeface(sfBold);
+        fillPaint.setTypeface(clockTypeface);
         fillPaint.setTextAlign(Paint.Align.CENTER);
         fillPaint.setLetterSpacing(-0.04f);
 
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        strokePaint.setTypeface(sfBold);
+        strokePaint.setTypeface(clockTypeface);
         strokePaint.setTextAlign(Paint.Align.CENTER);
         strokePaint.setLetterSpacing(-0.04f);
         strokePaint.setStyle(Paint.Style.STROKE);
@@ -92,9 +89,9 @@ public class GlassClockView extends View {
                     0, 0,
                     0, h / VERTICAL_STRETCH,
                     new int[]{
-                            Color.argb(230, 255, 255, 255),
-                            Color.argb(165, 255, 255, 255),
-                            Color.argb(215, 255, 255, 255)
+                            Color.argb(235, 255, 255, 255),
+                            Color.argb(170, 255, 255, 255),
+                            Color.argb(220, 255, 255, 255)
                     },
                     new float[]{0f, 0.55f, 1f},
                     Shader.TileMode.CLAMP
