@@ -44,7 +44,6 @@ import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
 
-import com.replica.iosui.R;
 import com.replica.iosui.core.IosAccessibilityService;
 
 import java.text.SimpleDateFormat;
@@ -247,12 +246,15 @@ public class LockScreenOverlayManager {
             try {
                 isFlashlightOn = !isFlashlightOn;
                 cameraManager.setTorchMode(torchCameraId, isFlashlightOn);
-                if (isFlashlightOn) {
-              views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle_active);
-views.ivFlashlightIcon.setColorFilter(Color.parseColor("#1C1C1E"));
+                float d = context.getResources().getDisplayMetrics().density;
+if (isFlashlightOn) {
+views.btnFlashlight.setBackground(LockScreenViewBuilder.createGlassCircleDrawable(true, d));
+views.ivFlashlightIcon.setImageBitmap(
+LockScreenViewBuilder.createFlashlightBitmap(Math.round(48 * d), Color.parseColor("#1C1C1E")));
 } else {
-views.btnFlashlight.setBackgroundResource(R.drawable.bg_ios_glass_circle);
-views.ivFlashlightIcon.setColorFilter(Color.WHITE);
+views.btnFlashlight.setBackground(LockScreenViewBuilder.createGlassCircleDrawable(false, d));
+views.ivFlashlightIcon.setImageBitmap(
+LockScreenViewBuilder.createFlashlightBitmap(Math.round(48 * d), Color.WHITE));
 }
 } catch (Exception ignored) {
 }
@@ -279,7 +281,7 @@ LockNotificationItem item = (LockNotificationItem) obj;
 LinearLayout card = new LinearLayout(context);
 card.setOrientation(LinearLayout.HORIZONTAL);
 card.setGravity(Gravity.CENTER_VERTICAL);
-card.setBackgroundResource(R.drawable.bg_ios_notification_card);
+card.setBackground(LockScreenViewBuilder.createNotificationCardDrawable(d));
 int padH = Math.round(14 * d);
 int padV = Math.round(12 * d);
 card.setPadding(padH, padV, padH, padV);
