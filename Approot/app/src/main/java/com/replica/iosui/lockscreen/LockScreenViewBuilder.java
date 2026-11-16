@@ -232,7 +232,7 @@ public class LockScreenViewBuilder {
         homeBar.setLayoutParams(barLp);
 
         GradientDrawable homeBarBg = new GradientDrawable();
-homeBarBg.setShape(GradientDrawable.RECTANGLE);
+        homeBarBg.setShape(GradientDrawable.RECTANGLE);
 homeBarBg.setCornerRadius(100f * d);
 homeBarBg.setColor(Color.parseColor("#EBFFFFFF"));
 homeBar.setBackground(homeBarBg);
