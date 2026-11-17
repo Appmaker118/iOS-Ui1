@@ -19,16 +19,16 @@ import java.util.Locale;
 
 public class GlassClockView extends View {
 
-    private Paint fillPaint;
-    private Paint innerHighlightPaint;
-    private Paint rimStrokePaint;
+    private Paint sheerGlassFillPaint;
+    private Paint diagonalShinePaint;
+    private Paint glassEdgeRimPaint;
     private String timeText = "9:41";
     private final Rect textBounds = new Rect();
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm", Locale.getDefault());
 
-    // Condensed tall iOS 26/27 proportions (narrower width, taller height)
-    private static final float SCALE_X = 0.84f;
-    private static final float SCALE_Y = 1.24f;
+    // Long, slender, calm iOS Liquid Glass proportions
+    private static final float SCALE_X = 0.72f;
+    private static final float SCALE_Y = 1.52f;
 
     public GlassClockView(Context context) {
         super(context);
@@ -46,25 +46,24 @@ public class GlassClockView extends View {
     }
 
     private void init() {
-        Typeface clockTypeface = Typeface.create("sans-serif-medium", Typeface.BOLD);
+        Typeface sleekTypeface = Typeface.create("sans-serif-light", Typeface.BOLD);
 
-        fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fillPaint.setTypeface(clockTypeface);
-        fillPaint.setTextAlign(Paint.Align.CENTER);
-        fillPaint.setLetterSpacing(-0.045f);
+        sheerGlassFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        sheerGlassFillPaint.setTypeface(sleekTypeface);
+        sheerGlassFillPaint.setTextAlign(Paint.Align.CENTER);
+        sheerGlassFillPaint.setLetterSpacing(-0.045f);
 
-        innerHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        innerHighlightPaint.setTypeface(clockTypeface);
-        innerHighlightPaint.setTextAlign(Paint.Align.CENTER);
-        innerHighlightPaint.setLetterSpacing(-0.045f);
-        innerHighlightPaint.setColor(Color.argb(55, 255, 255, 255));
+        diagonalShinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        diagonalShinePaint.setTypeface(sleekTypeface);
+        diagonalShinePaint.setTextAlign(Paint.Align.CENTER);
+        diagonalShinePaint.setLetterSpacing(-0.045f);
 
-        rimStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        rimStrokePaint.setTypeface(clockTypeface);
-        rimStrokePaint.setTextAlign(Paint.Align.CENTER);
-        rimStrokePaint.setLetterSpacing(-0.045f);
-        rimStrokePaint.setStyle(Paint.Style.STROKE);
-        rimStrokePaint.setStrokeWidth(2.4f);
+        glassEdgeRimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        glassEdgeRimPaint.setTypeface(sleekTypeface);
+        glassEdgeRimPaint.setTextAlign(Paint.Align.CENTER);
+        glassEdgeRimPaint.setLetterSpacing(-0.045f);
+        glassEdgeRimPaint.setStyle(Paint.Style.STROKE);
+        glassEdgeRimPaint.setStrokeWidth(1.65f);
 
         updateTime();
     }
@@ -81,48 +80,63 @@ public class GlassClockView extends View {
         if (baseTextSize <= 0) {
             baseTextSize = 200f;
         }
-        fillPaint.setTextSize(baseTextSize);
-        innerHighlightPaint.setTextSize(baseTextSize);
-        rimStrokePaint.setTextSize(baseTextSize);
+        sheerGlassFillPaint.setTextSize(baseTextSize);
+        diagonalShinePaint.setTextSize(baseTextSize);
+        glassEdgeRimPaint.setTextSize(baseTextSize);
 
-        fillPaint.getTextBounds("9:41", 0, 4, textBounds);
-        int desiredHeight = (int) (textBounds.height() * SCALE_Y + dpToPx(14));
+        sheerGlassFillPaint.getTextBounds("9:41", 0, 4, textBounds);
+        int desiredHeight = (int) (textBounds.height() * SCALE_Y + dpToPx(16));
         setMeasuredDimension(width, desiredHeight);
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        if (h > 0) {
+        if (w > 0 && h > 0) {
             float unscaledH = h / SCALE_Y;
-            // True translucent Liquid Glass gradient so wallpaper glows through
-            Shader glassFill = new LinearGradient(
+
+            // Ultra-sheer glass tint so the wallpaper blends directly through the numbers
+            Shader sheerBody = new LinearGradient(
                     0, 0,
                     0, unscaledH,
                     new int[]{
-                            Color.argb(175, 255, 255, 255),
-                            Color.argb(95, 255, 255, 255),
-                            Color.argb(155, 255, 255, 255)
+                            Color.argb(68, 255, 255, 255),
+                            Color.argb(26, 255, 255, 255),
+                            Color.argb(58, 255, 255, 255)
                     },
-                    new float[]{0f, 0.5f, 1f},
+                    new float[]{0f, 0.52f, 1f},
                     Shader.TileMode.CLAMP
             );
-            fillPaint.setShader(glassFill);
-            fillPaint.setShadowLayer(20f, 0f, 8f, Color.argb(40, 0, 0, 0));
+            sheerGlassFillPaint.setShader(sheerBody);
+            sheerGlassFillPaint.setShadowLayer(24f, 0f, 10f, Color.argb(28, 0, 0, 0));
 
-            // Specular edge gradient (bright top & bottom rim)
+            // Soft diagonal glass light reflection (gives realistic polished glass shine)
+            Shader diagonalShine = new LinearGradient(
+                    w * 0.22f, 0,
+                    w * 0.78f, unscaledH,
+                    new int[]{
+                            Color.argb(95, 255, 255, 255),
+                            Color.argb(12, 255, 255, 255),
+                            Color.argb(72, 255, 255, 255)
+                    },
+                    new float[]{0f, 0.48f, 1f},
+                    Shader.TileMode.CLAMP
+            );
+            diagonalShinePaint.setShader(diagonalShine);
+
+            // Delicate refractive glass rim that keeps digits crisp without looking bulky
             Shader glassRim = new LinearGradient(
                     0, 0,
                     0, unscaledH,
                     new int[]{
-                            Color.argb(210, 255, 255, 255),
-                            Color.argb(90, 255, 255, 255),
-                            Color.argb(190, 255, 255, 255)
+                            Color.argb(175, 255, 255, 255),
+                            Color.argb(65, 255, 255, 255),
+                            Color.argb(150, 255, 255, 255)
                     },
                     new float[]{0f, 0.5f, 1f},
                     Shader.TileMode.CLAMP
             );
-            rimStrokePaint.setShader(glassRim);
+            glassEdgeRimPaint.setShader(glassRim);
         }
     }
 
@@ -133,15 +147,14 @@ public class GlassClockView extends View {
         float unscaledHeight = getHeight() / SCALE_Y;
 
         canvas.save();
-        // Scale around horizontal center so clock is slender & tall
         canvas.scale(SCALE_X, SCALE_Y, centerX, 0f);
 
-        fillPaint.getTextBounds(timeText, 0, timeText.length(), textBounds);
+        sheerGlassFillPaint.getTextBounds(timeText, 0, timeText.length(), textBounds);
         float baselineY = (unscaledHeight / 2f) + (textBounds.height() / 2f) - dpToPx(2);
 
-        canvas.drawText(timeText, centerX, baselineY, fillPaint);
-        canvas.drawText(timeText, centerX, baselineY - 1.5f, innerHighlightPaint);
-        canvas.drawText(timeText, centerX, baselineY, rimStrokePaint);
+        canvas.drawText(timeText, centerX, baselineY, sheerGlassFillPaint);
+        canvas.drawText(timeText, centerX, baselineY, diagonalShinePaint);
+        canvas.drawText(timeText, centerX, baselineY, glassEdgeRimPaint);
 
         canvas.restore();
     }
