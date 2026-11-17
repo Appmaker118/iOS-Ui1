@@ -65,6 +65,15 @@
             android:turnScreenOn="true"
             android:theme="@style/Theme.Ios27Ui.LockScreen" />
 
+         <!-- Transparent 0ms Bridge that skips Samsung's Swipe Curtain straight to PIN / Home -->
+        <activity
+            android:name=".lockscreen.KeyguardUnlockBridgeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:showWhenLocked="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+
         <!-- Background Service that pops up Lock Screen when Power Button turns screen off/on -->
         <service
             android:name=".lockscreen.LockScreenService"
