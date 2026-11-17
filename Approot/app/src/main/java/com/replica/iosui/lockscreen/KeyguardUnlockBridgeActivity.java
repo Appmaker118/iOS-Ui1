@@ -21,7 +21,13 @@ public class KeyguardUnlockBridgeActivity extends Activity {
         try {
             context.startActivity(intent);
         } catch (Exception e) {
-            firePendingAndFinish();
+            if (pendingNotificationIntent != null) {
+                try {
+                    pendingNotificationIntent.send();
+                } catch (Exception ignored) {
+                }
+                pendingNotificationIntent = null;
+            }
         }
     }
 
