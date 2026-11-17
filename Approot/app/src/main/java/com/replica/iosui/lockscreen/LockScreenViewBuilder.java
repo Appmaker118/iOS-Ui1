@@ -83,9 +83,9 @@ public class LockScreenViewBuilder {
         GradientDrawable vignetteGrad = new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{
-                        Color.parseColor("#26000000"),
-                        Color.parseColor("#08000000"),
-                        Color.parseColor("#33000000")
+                        Color.parseColor("#24000000"),
+                        Color.parseColor("#06000000"),
+                        Color.parseColor("#30000000")
                 }
         );
         vignette.setBackground(vignetteGrad);
@@ -99,7 +99,7 @@ public class LockScreenViewBuilder {
         ));
         v.root.addView(v.slidingContent);
 
-        // 4. Centered Date + Tall Condensed Liquid Glass Clock at Top
+        // 4. Clean Thin Pure White Date + Long Sheer Liquid Glass Clock at Top
         LinearLayout clockHeader = new LinearLayout(context);
         FrameLayout.LayoutParams headerLp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -120,10 +120,11 @@ public class LockScreenViewBuilder {
         v.tvDate.setLayoutParams(dateLp);
         v.tvDate.setGravity(Gravity.CENTER);
         v.tvDate.setText("Wed Apr 1");
-        v.tvDate.setTextColor(Color.parseColor("#F5FFFFFF"));
-        v.tvDate.setTextSize(20f);
-        v.tvDate.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        v.tvDate.setShadowLayer(8f, 0f, 2f, Color.parseColor("#55000000"));
+        v.tvDate.setTextColor(Color.WHITE);
+        v.tvDate.setTextSize(19.5f);
+        v.tvDate.setLetterSpacing(0.015f);
+        v.tvDate.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        v.tvDate.setShadowLayer(6f, 0f, 1.5f, Color.parseColor("#45000000"));
         clockHeader.addView(v.tvDate);
 
         v.glassClockView = new GlassClockView(context);
@@ -131,13 +132,13 @@ public class LockScreenViewBuilder {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        clockLp.topMargin = Math.round(-6 * d);
+        clockLp.topMargin = Math.round(-4 * d);
         v.glassClockView.setLayoutParams(clockLp);
         clockHeader.addView(v.glassClockView);
 
         v.slidingContent.addView(clockHeader);
 
-        // 5. Bottom-Up Stacked Notifications Zone (anchored cleanly above the bottom buttons)
+        // 5. Bottom-Up Stacked Notifications Zone
         ScrollView notifScroll = new ScrollView(context);
         FrameLayout.LayoutParams scrollLp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -247,9 +248,7 @@ Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
 p.setColor(color);
 p.setStyle(Paint.Style.FILL);
 float s = size / 24f;
-// Top rim
 c.drawRoundRect(new RectF(8f * s, 2.5f * s, 16f * s, 5.2f * s), 1.2f * s, 1.2f * s, p);
-// Tapered head + handle
 Path body = new Path();
 body.moveTo(8f * s, 6.3f * s);
 body.lineTo(16f * s, 6.3f * s);
@@ -261,7 +260,6 @@ body.quadTo(9.9f * s, 21.6f * s, 9.9f * s, 20.3f * s);
 body.lineTo(9.9f * s, 10.1f * s);
 body.close();
 c.drawPath(body, p);
-// Power dot cutout
 Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 dotPaint.setColor(color == Color.WHITE ? Color.parseColor("#66000000") : Color.WHITE);
 c.drawCircle(12f * s, 12.5f * s, 1.15f * s, dotPaint);
@@ -274,7 +272,6 @@ Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
 p.setColor(color);
 p.setStyle(Paint.Style.FILL);
 float s = size / 24f;
-// Top shutter bump
 Path bump = new Path();
 bump.moveTo(7.8f * s, 6.6f * s);
 bump.lineTo(9.2f * s, 4.4f * s);
@@ -282,13 +279,10 @@ bump.lineTo(14.8f * s, 4.4f * s);
 bump.lineTo(16.2f * s, 6.6f * s);
 bump.close();
 c.drawPath(bump, p);
-// Main rounded camera body
 c.drawRoundRect(new RectF(2f * s, 6.5f * s, 22f * s, 19.8f * s), 3.2f * s, 3.2f * s, p);
-// Lens ring cutout
 Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
 ring.setColor(Color.parseColor("#66000000"));
 c.drawCircle(12f * s, 13.2f * s, 4.1f * s, ring);
-// Inner lens
 c.drawCircle(12f * s, 13.2f * s, 2.6f * s, p);
 return bmp;
 }
