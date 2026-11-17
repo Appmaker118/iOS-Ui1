@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -83,7 +84,6 @@ public class IosNotificationListenerService extends NotificationListenerService 
                 continue;
             }
 
-            // Skip ongoing silent background services (like VPN or battery monitors)
             if ((notif.flags & Notification.FLAG_ONGOING_EVENT) != 0
                     && (notif.flags & Notification.FLAG_FOREGROUND_SERVICE) != 0) {
                 continue;
@@ -111,7 +111,7 @@ public class IosNotificationListenerService extends NotificationListenerService 
                 title = getAppName(pm, sbn.getPackageName());
             }
 
-            Drawable appIcon = getAppIcon(pm, sbn.getPackageName());
+            Drawable appIcon = resolveAppIcon(context, pm, sbn);
 
             result.add(new LockNotificationItem(
                     sbn.getKey(),
@@ -124,7 +124,6 @@ public class IosNotificationListenerService extends NotificationListenerService 
             ));
         }
 
-        // Sort oldest -> newest so newest sits right at the bottom of the stack
         Collections.sort(result, (a, b) -> Long.compare(a.postTime, b.postTime));
         return result;
     }
@@ -138,11 +137,24 @@ public class IosNotificationListenerService extends NotificationListenerService 
         }
     }
 
-    private static Drawable getAppIcon(PackageManager pm, String packageName) {
+    private static Drawable resolveAppIcon(Context context, PackageManager pm, StatusBarNotification sbn) {
         try {
-            return pm.getApplicationIcon(packageName);
-        } catch (Exception e) {
-            return null;
+            ApplicationInfo info = pm.getApplicationInfo(sbn.getPackageName(), PackageManager.GET_META_DATA);
+            Drawable icon = pm.getApplicationIcon(info);
+            if (icon != null) return icon;
+        } catch (Exception ignored) {
         }
+        try {
+            Drawable icon = pm.getApplicationIcon(sbn.getPackageName());
+            if (icon != null) return icon;
+        } catch (Exception ignored) {
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && sbn.getNotification().getSmallIcon() != null) {
+                return sbn.getNotification().getSmallIcon().loadDrawable(context);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 }
