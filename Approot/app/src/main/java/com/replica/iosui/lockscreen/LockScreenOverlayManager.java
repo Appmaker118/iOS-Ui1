@@ -20,7 +20,9 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
@@ -155,7 +157,7 @@ public class LockScreenOverlayManager {
                     | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
                     | WindowManager.LayoutParams.FLAG_FULLSCREEN
                     | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-                    | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD;
+                    | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
 
             WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
@@ -165,6 +167,7 @@ public class LockScreenOverlayManager {
                     PixelFormat.TRANSLUCENT
             );
             params.gravity = Gravity.TOP | Gravity.START;
+            params.screenOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
@@ -244,9 +247,9 @@ public class LockScreenOverlayManager {
             triggerIosHaptic();
             if (cameraManager == null || torchCameraId == null) return;
             try {
-                isFlashlightOn = !isFlashlightOn;
-                cameraManager.setTorchMode(torchCameraId, isFlashlightOn);
-                float d = context.getResources().getDisplayMetrics().density;
+isFlashlightOn = !isFlashlightOn;
+cameraManager.setTorchMode(torchCameraId, isFlashlightOn);
+float d = context.getResources().getDisplayMetrics().density;
 if (isFlashlightOn) {
 views.btnFlashlight.setBackground(LockScreenViewBuilder.createGlassCircleDrawable(true, d));
 views.ivFlashlightIcon.setImageBitmap(
@@ -294,8 +297,15 @@ card.setLayoutParams(cardLp);
 ImageView ivIcon = new ImageView(context);
 int iconSize = Math.round(38 * d);
 ivIcon.setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
+ivIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
 if (item.appIcon != null) {
 ivIcon.setImageBitmap(getRoundedIcon(item.appIcon));
+} else {
+GradientDrawable fallbackBadge = new GradientDrawable();
+fallbackBadge.setShape(GradientDrawable.RECTANGLE);
+fallbackBadge.setCornerRadius(9f * d);
+fallbackBadge.setColor(Color.parseColor("#3A3A3C"));
+ivIcon.setBackground(fallbackBadge);
 }
 card.addView(ivIcon);
 LinearLayout textCol = new LinearLayout(context);
@@ -349,7 +359,19 @@ DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE
 ).toString();
 }
 private Bitmap getRoundedIcon(Drawable drawable) {
-int size = 96;
+int size = 112;
+Bitmap src = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+Canvas srcCanvas = new Canvas(src);
+if (drawable instanceof BitmapDrawable && ((BitmapDrawable) drawable).getBitmap() != null) {
+Bitmap bmp = ((BitmapDrawable) drawable).getBitmap();
+srcCanvas.drawBitmap(bmp, null, new Rect(0, 0, size, size), new Paint(Paint.FILTER_BITMAP_FLAG));
+} else {
+Drawable copy = drawable.getConstantState() != null
+? drawable.getConstantState().newDrawable().mutate()
+: drawable.mutate();
+copy.setBounds(0, 0, size, size);
+copy.draw(srcCanvas);
+}
 Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
 Canvas canvas = new Canvas(output);
 final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -358,10 +380,6 @@ final RectF rectF = new RectF(rect);
 float radius = size * 0.225f;
 canvas.drawRoundRect(rectF, radius, radius, paint);
 paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-Bitmap src = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-Canvas srcCanvas = new Canvas(src);
-drawable.setBounds(0, 0, size, size);
-drawable.draw(srcCanvas);
 canvas.drawBitmap(src, rect, rect, paint);
 return output;
 }
@@ -406,13 +424,8 @@ SpringAnimation slideUp = new SpringAnimation(views.slidingContent, DynamicAnima
 slideUp.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM);
 slideUp.getSpring().setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY);
 slideUp.addEndListener((animation, canceled, value, velocity) -> {
+KeyguardUnlockBridgeActivity.triggerSystemUnlock(context, pendingIntent);
 dismiss();
-if (pendingIntent != null) {
-try {
-pendingIntent.send();
-} catch (Exception ignored) {
-}
-}
 });
 slideUp.start();
 }
