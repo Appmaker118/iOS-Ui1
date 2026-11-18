@@ -10,23 +10,23 @@ import android.os.Bundle;
 
 public class KeyguardUnlockBridgeActivity extends Activity {
 
-    public static PendingIntent pendingNotificationIntent;
+    private static final String EXTRA_PENDING_INTENT = "extra_pending_intent";
+    private PendingIntent pendingNotificationIntent;
 
     public static void triggerSystemUnlock(Context context, PendingIntent notifIntent) {
-        pendingNotificationIntent = notifIntent;
         Intent intent = new Intent(context, KeyguardUnlockBridgeActivity.class);
+        intent.putExtra(EXTRA_PENDING_INTENT, notifIntent);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_NO_ANIMATION
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         try {
             context.startActivity(intent);
         } catch (Exception e) {
-            if (pendingNotificationIntent != null) {
+            if (notifIntent != null) {
                 try {
-                    pendingNotificationIntent.send();
+                    notifIntent.send();
                 } catch (Exception ignored) {
                 }
-                pendingNotificationIntent = null;
             }
         }
     }
@@ -35,6 +35,12 @@ public class KeyguardUnlockBridgeActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         overridePendingTransition(0, 0);
         super.onCreate(savedInstanceState);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pendingNotificationIntent = getIntent().getParcelableExtra(EXTRA_PENDING_INTENT, PendingIntent.class);
+        } else {
+            pendingNotificationIntent = getIntent().getParcelableExtra(EXTRA_PENDING_INTENT);
+        }
 
         KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && km != null && km.isKeyguardLocked()) {
